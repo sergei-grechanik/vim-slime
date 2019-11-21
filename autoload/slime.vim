@@ -220,6 +220,45 @@ endfunction
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" qtconsole
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+function! s:QtconsoleSend(config, text)
+  let window_id = shellescape(a:config["window_id"])
+  let xclip_backup = system("xclip -o -selection clipboard")
+  call system("xclip -selection clipboard -i", a:text)
+  try
+    call system("xdotool key --clearmodifiers --window " . window_id . " Escape")
+    let out = system("xdotool key --clearmodifiers --window " . window_id . " ctrl+v")
+    if v:shell_error != 0
+      echomsg "Could not send keys: " . out
+    endif
+    " We wait because otherwise we may revert the clipboard to the original state too early
+    sleep 100m
+    call system("xdotool key --clearmodifiers --window " . window_id . " Shift+Return")
+  finally
+    call system("xclip -selection clipboard -i", xclip_backup)
+  endtry
+endfunction
+
+function! s:QtconsoleConfig() abort
+  echo "Click on the window you want to send text to"
+  let window_id = system("xdotool selectwindow")
+  redraw
+  if v:shell_error == 0
+    if !exists("b:slime_config")
+      let b:slime_config = {}
+    endif
+    let window_id = substitute(window_id, '\n\+$', '', '')
+    let b:slime_config["window_id"] = window_id
+    echo "Will send text to the window " . window_id
+  else
+    throw "xdotool selectwindow failed with code " . v:shell_error . ": " . window_id
+  endif
+endfunction
+
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Helpers
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
